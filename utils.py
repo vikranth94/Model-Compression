@@ -8,7 +8,7 @@ import keras
 from keras.models import Sequential
 from keras.preprocessing.image import ImageDataGenerator
 from keras.layers import Dense, Activation, Flatten, Dropout, BatchNormalization
-from keras.layers import Conv2D, MaxPooling2D
+from keras.layers import Conv2D, MaxPooling2D, AveragePooling2D
 from keras.callbacks import ModelCheckpoint, TensorBoard
 from keras.models import load_model
 from sklearn.metrics import confusion_matrix
