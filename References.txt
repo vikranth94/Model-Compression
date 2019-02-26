@@ -1,2 +1,6 @@
 https://colab.research.google.com/github/tensorflow/tensorflow/blob/master/tensorflow/lite/tutorials/post_training_quant.ipynb#scrollTo=g8PUvLWDlmmz
 https://heartbeat.fritz.ai/8-bit-quantization-and-tensorflow-lite-speeding-up-mobile-inference-with-low-precision-a882dfcafbbd
+
+https://cs230-stanford.github.io/tensorflow-input-data.html
+https://github.com/aymericdamien/TensorFlow-Examples/blob/master/examples/5_DataManagement/tensorflow_dataset_api.py
+https://stackoverflow.com/questions/50437234/tensorflow-dataset-shuffle-then-batch-or-batch-then-shuffle
