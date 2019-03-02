@@ -8,7 +8,7 @@ import keras
 from keras.models import Sequential
 from keras.preprocessing.image import ImageDataGenerator
 from keras.layers import Dense, Activation, Flatten, Dropout, BatchNormalization
-from keras.layers import Conv2D, MaxPooling2D, AveragePooling2D
+from keras.layers import Conv2D, MaxPooling2D, AveragePooling2D, Reshape
 from keras.callbacks import ModelCheckpoint, TensorBoard
 from keras.models import load_model
 from sklearn.metrics import confusion_matrix
@@ -16,10 +16,13 @@ from sklearn.metrics import f1_score, accuracy_score
 from sklearn.utils import shuffle
 import matplotlib.pyplot as plt
 import itertools
+import tensorflow as tf
+from tensorflow.contrib.model_pruning.python import pruning
+from tensorflow.contrib.model_pruning.python.layers import layers
 
 NAME = 'Cifar10_CNN'
 data_dir = 'cifar'
-model_dir = 'Models'
+model_dir = 'Model_Saves'
 num_classes = 10
 
 classes = ['airplane', 'automobile', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship','truck']
@@ -128,7 +131,7 @@ def create_FCN_model(inp_shape, num_classes, p=0.2):
     model = Sequential()
     model.add(Conv2D(96, kernel_size=(3, 3),
                activation='relu',
-               input_shape=X_train.shape[1:],
+               input_shape=inp_shape,
                padding='same', name='Conv_1'))
     model.add(BatchNormalization(name='Bn_1')) 
     model.add(Conv2D(96, kernel_size=(3, 3), activation='relu',padding='same',  name='Conv_2'))
@@ -154,11 +157,7 @@ def create_FCN_model(inp_shape, num_classes, p=0.2):
     print(model.summary())
     return model
 
-def tf_fcn_model():
-
-    tf.reset_default_graph()
-    image = tf.placeholder(name='images', dtype=tf.float32, shape=[None, 32, 32, 3])
-    label = tf.placeholder(name='fine_labels', dtype=tf.int32, shape=[None, 10])
+def tf_fcn_model(image):
 
     _=image
     _ = layers.masked_conv2d(_, 96, (3, 3), 1, 'SAME')
