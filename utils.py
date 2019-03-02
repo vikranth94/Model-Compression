@@ -13,6 +13,7 @@ from keras.callbacks import ModelCheckpoint, TensorBoard
 from keras.models import load_model
 from sklearn.metrics import confusion_matrix
 from sklearn.metrics import f1_score, accuracy_score
+from sklearn.utils import shuffle
 import matplotlib.pyplot as plt
 import itertools
 
@@ -68,6 +69,29 @@ def z_normalization(X, mean, std):
 	X = (X-mean)/(std+1e-7)
 	return X
 
+def sample_batch(dataset, labels, batch_size):
+    N = dataset.shape[0]
+    indices = np.random.randint(N, size=batch_size)
+    x_epoch = dataset[indices]
+    y_epoch = labels[indices]
+    return x_epoch, y_epoch
+
+def set_prune_params(s):
+    # Get, Print, and Edit Pruning Hyperparameters
+    pruning_hparams = pruning.get_pruning_hparams()
+    print("Pruning Hyperparameters:", pruning_hparams)
+
+    # Change hyperparameters to meet our needs
+    pruning_hparams.begin_pruning_step = 0
+    pruning_hparams.end_pruning_step = 250
+    pruning_hparams.pruning_frequency = 1
+    pruning_hparams.sparsity_function_end_step = 250
+    pruning_hparams.target_sparsity = s
+
+    # Create a pruning object using the pruning specification, sparsity seems to have priority over the hparam
+    p = pruning.Pruning(pruning_hparams, global_step=global_step)
+    prune_op = p.conditional_mask_update_op()
+    return prune_op
 
 def create_CNN_model(inp_shape, num_classes, p=0.2):
 	model = Sequential()
@@ -100,8 +124,65 @@ def create_CNN_model(inp_shape, num_classes, p=0.2):
 	print(model.summary())
 	return model
 
+def create_FCN_model(inp_shape, num_classes, p=0.2):
+    model = Sequential()
+    model.add(Conv2D(96, kernel_size=(3, 3),
+               activation='relu',
+               input_shape=X_train.shape[1:],
+               padding='same', name='Conv_1'))
+    model.add(BatchNormalization(name='Bn_1')) 
+    model.add(Conv2D(96, kernel_size=(3, 3), activation='relu',padding='same',  name='Conv_2'))
+    model.add(BatchNormalization(name='Bn_2')) 
+    model.add(MaxPooling2D(pool_size=(3, 3), strides = 2, padding = 'same', name='Max_pool_1'))  
+    model.add(Dropout(p, name='Drop_1'))
+    model.add(Conv2D(192, kernel_size=(3, 3), activation='relu',padding='same',  name='Conv_3'))
+    model.add(BatchNormalization(name='Bn_3')) 
+    model.add(Conv2D(192, kernel_size=(3, 3), activation='relu',padding='same',  name='Conv_4'))
+    model.add(BatchNormalization(name='Bn_4')) 
+    model.add(MaxPooling2D(pool_size=(3, 3), strides = 2, padding = 'same',name='Max_pool_2'))  
+    model.add(Dropout(p, name='Drop_2'))
+    model.add(Conv2D(192, kernel_size=(3, 3), activation='relu',padding='valid',  name='Conv_5'))
+    model.add(BatchNormalization(name='Bn_5')) 
+    model.add(Conv2D(192, kernel_size=(1, 1), activation='relu',padding='same',  name='Conv_6'))
+    model.add(BatchNormalization(name='Bn_6')) 
+    model.add(Conv2D(10, kernel_size=(1, 1), activation='relu',padding='same',  name='Conv_7'))
+    model.add(BatchNormalization(name='Bn_7')) 
+    model.add(Dropout(p, name='Drop_4'))
+    model.add(AveragePooling2D(pool_size=(6, 6), strides=1, name='avg_pool'))  
+    model.add(Flatten(name = 'Flatten_1'))
+    model.add(Activation('softmax', name = 'output'))
+    print(model.summary())
+    return model
 
-def train_CNN_model(model, X_train, y_train, X_val, y_val, model_dir, t, batch_size=256, epochs=50):
+def tf_fcn_model():
+
+    tf.reset_default_graph()
+    image = tf.placeholder(name='images', dtype=tf.float32, shape=[None, 32, 32, 3])
+    label = tf.placeholder(name='fine_labels', dtype=tf.int32, shape=[None, 10])
+
+    _=image
+    _ = layers.masked_conv2d(_, 96, (3, 3), 1, 'SAME')
+    _ = tf.layers.batch_normalization(_, name='norm1-1')
+    _ = layers.masked_conv2d(_, 96, (3, 3), 1, 'SAME')
+    _ = tf.layers.batch_normalization(_, name='norm1-2')
+    _ = tf.layers.max_pooling2d(_, (3, 3), 2, 'SAME',name='pool1')
+    _ = layers.masked_conv2d(_, 192, (3, 3), 1, 'SAME')
+    _ = tf.layers.batch_normalization(_, name='norm2-1')
+    _ = layers.masked_conv2d(_, 192, (3, 3), 1, 'SAME')
+    _ = tf.layers.batch_normalization(_, name='norm2-2')
+    _ = tf.layers.max_pooling2d(_, (3, 3), 2, 'SAME', name='pool2')
+    _ = layers.masked_conv2d(_, 192, (3, 3), 1, 'VALID')
+    _ = tf.layers.batch_normalization(_, name='norm3')
+    _ = layers.masked_conv2d(_, 192, (1, 1), 1)
+    _ = tf.layers.batch_normalization(_, name='norm4')
+    _ = layers.masked_conv2d(_, 10, (1, 1), 1)
+    _ = tf.layers.batch_normalization(_, name='norm5')
+    _ = tf.layers.average_pooling2d(_, (6,6), 1, name='avg_pool')
+    y = _
+    logits = tf.reshape(y,[tf.shape(y)[0],10])
+    return logits
+
+def train_model(model, X_train, y_train, X_val, y_val, model_dir, t, batch_size=256, epochs=50):
     
     model.compile(loss=keras.losses.categorical_crossentropy,
                   optimizer='adam',
