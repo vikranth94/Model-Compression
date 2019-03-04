@@ -204,8 +204,7 @@ def train_model(model, X_train, y_train, X_val, y_val, model_dir, t, batch_size=
     #Saving the model
     model.save(os.path.join(model_dir, 'final_{}_{}'.format(NAME,t)))
     return model, history
-
-
+    
 def calculate_metrics(model, X_test, y_test_binary):
     y_pred = np.argmax(model.predict(X_test), axis=1)
     y_true = np.argmax(y_test_binary, axis=1)

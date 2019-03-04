@@ -2,10 +2,14 @@ cifar/
 logs/
 Model_Saves/
 Models_Given/
-Models/
 __pycache__/
 .ipynb_checkpoints/
+
 *.npy
 *.h5
 *.tflite
+
 project_2_spec_updated.pdf
+
+Quantization_backup.ipynb
+Cifar_Pruning_backup.ipynb
