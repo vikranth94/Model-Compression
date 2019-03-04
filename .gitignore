@@ -10,6 +10,5 @@ __pycache__/
 *.tflite
 
 project_2_spec_updated.pdf
-
 Quantization_backup.ipynb
 Cifar_Pruning_backup.ipynb
